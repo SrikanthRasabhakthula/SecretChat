@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <style>
+        body {
+            margin: 0 auto;
+            max-width: 800px;
+            padding: 0 20px;
+        }
+
+        .container {
+            border: 2px solid #dedede;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .darker {
+            border-color: #ccc;
+            background-color: #ddd;
+        }
+
+        .container::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        .container img {
+            float: left;
+            max-width: 60px;
+            width: 100%;
+            margin-right: 20px;
+            border-radius: 50%;
+        }
+
+        .container img.right {
+            float: right;
+            margin-left: 20px;
+            margin-right: 0;
+        }
+
+        .time-right {
+            float: right;
+            color: #aaa;
+        }
+
+        .time-left {
+            float: left;
+            color: #999;
+        }
+
+        input[type=text], select {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type=submit] {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type=submit]:hover {
+            background-color: #45a049;
+        }
+
+        div {
+            border-radius: 5px;
+            background-color: #f2f2f2;
+            padding: 20px;
+        }
+
+    </style>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+</head>
+<body>
+
+<div align="center">
+    <h2>{{ room }} - DjChat</h2>
+</div>
+
+<!-- Chat Messages Display -->
+<div id="display">
+    <!-- Messages will be loaded here dynamically -->
+</div>
+
+<!-- Message Sending Form -->
+<div class="container">
+    <form id="post-form">
+        {% csrf_token %}
+        <input type="hidden" name="username" id="username" value="{{ username }}">
+        <input type="hidden" name="room_id" id="room_id" value="{{ room_details.id }}">
+        <input type="text" name="message" id="message" placeholder="Enter your message...">
+        <input type="submit" value="Send">
+    </form>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var room = "{{ room }}";  // Room variable from the backend
+
+        // Ensure room is correctly set
+        if (!room) {
+            alert("Room name is missing!");
+            return;
+        }
+
+        // Function to fetch and display messages
+        function fetchMessages() {
+            $.ajax({
+                type: 'GET',
+                url: "/getMessages/" + room + "/",  // Correct room URL for fetching messages
+                success: function (response) {
+                    $("#display").empty();  // Clear the display area before appending new messages
+                    response.messages.forEach(function (message) {
+                        var temp = "<div class='container darker'><b>" + message.user + "</b><p>" + message.value + "</p><span class='time-left'>" + message.date + "</span></div>";
+                        $("#display").append(temp);  // Append each message to the display
+                    });
+                },
+                error: function () {
+                    alert('An error occurred while fetching messages.');
+                }
+            });
+        }
+
+        // Fetch messages when the page loads
+        fetchMessages();
+
+        // Fetch messages every 1 second
+        setInterval(fetchMessages, 1000);
+
+        // Handle message sending via AJAX
+        $('#post-form').submit(function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                type: 'POST',
+                url: '/send',
+                data: {
+                    username: $('#username').val(),
+                    room_id: $('#room_id').val(),
+                    message: $('#message').val(),
+                    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                },
+                success: function () {
+                    $('#message').val('');  // Clear the input after message is sent
+                    fetchMessages();  // Refresh the messages after sending
+                },
+                error: function () {
+                    alert('An error occurred while sending the message.');
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
